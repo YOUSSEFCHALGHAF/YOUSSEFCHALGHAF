@@ -1,0 +1,22 @@
+# --- Secrets : ne jamais publier ---
+.env
+*.env.local
+*firebase-adminsdk*.json
+serviceAccountKey.json
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Node / Vite ---
+node_modules/
+dist/
+
+# --- Éditeurs et système ---
+.vscode/
+.idea/
+Thumbs.db

@@ -1,0 +1,25 @@
+# API et serveur
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Base de données
+sqlalchemy
+pymysql
+cryptography
+alembic
+
+# Configuration
+pydantic-settings
+email-validator
+
+# Sécurité (étape 3)
+pyjwt
+bcrypt
+
+# Notifications (étape 6)
+firebase-admin
+
+# Tests
+pytest
+httpx
