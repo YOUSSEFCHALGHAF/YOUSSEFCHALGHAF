@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.config import settings
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True,   # teste la connexion avant usage (évite "MySQL server has gone away")
-    pool_recycle=3600,    # renouvelle les connexions toutes les heures
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    isolation_level="READ COMMITTED",  # chaque lecture voit les données déjà validées
 )
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
