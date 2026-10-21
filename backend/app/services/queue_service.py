@@ -90,3 +90,28 @@ def queue_to_read(db: Session, queue: Queue) -> QueueRead:
             "estimated_wait_minutes": round((waiting + 1) * average),
         }
     )
+def queue_snapshot(db: Session, queue: Queue) -> dict:
+    """État public de la file, diffusé par WebSocket (aucune donnée personnelle)."""
+    rows = db.execute(
+        select(Ticket.number, Ticket.code, Ticket.status)
+        .where(
+            Ticket.queue_id == queue.id,
+            Ticket.service_date == date.today(),
+            Ticket.status.in_((TicketStatus.WAITING, TicketStatus.CALLED)),
+        )
+        .order_by(Ticket.number)
+    ).all()
+
+    waiting_numbers = [number for number, _code, st in rows if st == TicketStatus.WAITING]
+    called_codes = [code for _number, code, st in rows if st == TicketStatus.CALLED]
+
+    return {
+        "queue_id": queue.id,
+        "name": queue.name,
+        "is_open": queue.is_open,
+        "remote_booking_enabled": queue.remote_booking_enabled,
+        "waiting_count": len(waiting_numbers),
+        "waiting_numbers": waiting_numbers,
+        "current_code": called_codes[-1] if called_codes else None,
+        "avg_service_minutes": round(average_service_minutes(db, queue), 1),
+    }

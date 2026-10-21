@@ -33,3 +33,7 @@ def auth_headers(client: TestClient, email: str) -> dict[str, str]:
     response = client.post("/api/auth/login", data={"username": email, "password": PASSWORD})
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
+def get_token(client: TestClient, email: str) -> str:
+    response = client.post("/api/auth/login", data={"username": email, "password": PASSWORD})
+    assert response.status_code == 200, response.text
+    return response.json()["access_token"]

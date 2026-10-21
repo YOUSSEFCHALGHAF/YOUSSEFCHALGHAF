@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
+
+from app.websockets.events import TICKET_UPDATED, publish
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, require_roles
@@ -27,11 +29,13 @@ def get_ticket(ticket_id: int, db: Session = Depends(get_db), user: User = Depen
 @router.post("/{ticket_id}/cancel", response_model=TicketRead)
 def cancel_ticket(
     ticket_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(require_roles(Role.CLIENT)),
 ):
     """Client : annuler son ticket (BF-07)."""
     ticket = ticket_service.cancel_by_client(db, ticket_id, user)
+    publish(background_tasks, db, TICKET_UPDATED, ticket.queue, ticket)
     return ticket_service.ticket_to_read(db, ticket)
 
 
@@ -39,9 +43,11 @@ def cancel_ticket(
 def change_ticket_status(
     ticket_id: int,
     payload: TicketStatusUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(require_roles(Role.MERCHANT, Role.ADMIN)),
 ):
     """Commerçant : servi, absent ou annulé (BF-12)."""
     ticket = ticket_service.change_status(db, ticket_id, payload.status, user)
+    publish(background_tasks, db, TICKET_UPDATED, ticket.queue, ticket)
     return ticket_service.ticket_to_read(db, ticket)

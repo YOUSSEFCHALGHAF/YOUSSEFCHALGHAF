@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
+
+from app.websockets.events import QUEUE_UPDATED, TICKET_CALLED, TICKET_CREATED, publish
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_roles
@@ -23,6 +25,7 @@ def get_queue(queue_id: int, db: Session = Depends(get_db)):
 def update_queue(
     queue_id: int,
     payload: QueueUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(manager),
 ):
@@ -34,17 +37,20 @@ def update_queue(
     log_action(db, user, "QUEUE_UPDATED", "queue", queue.id, payload.model_dump(exclude_unset=True))
     db.commit()
     db.refresh(queue)
+    publish(background_tasks, db, QUEUE_UPDATED, queue)
     return queue_to_read(db, queue)
 
 
 @router.post("/{queue_id}/tickets", response_model=TicketRead, status_code=status.HTTP_201_CREATED)
 def take_ticket(
     queue_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(require_roles(Role.CLIENT)),
 ):
     """Client : prendre un ticket virtuel (BF-04)."""
     ticket = ticket_service.take_ticket(db, queue_id, user)
+    publish(background_tasks, db, TICKET_CREATED, ticket.queue, ticket)
     return ticket_service.ticket_to_read(db, ticket)
 
 
@@ -57,9 +63,15 @@ def list_queue_tickets(queue_id: int, db: Session = Depends(get_db), user: User 
 
 
 @router.post("/{queue_id}/call-next", response_model=TicketRead)
-def call_next(queue_id: int, db: Session = Depends(get_db), user: User = Depends(manager)):
+def call_next(
+    queue_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User = Depends(manager),
+):
     """Commerçant : appeler le client suivant (BF-11)."""
     ticket = ticket_service.call_next(db, queue_id, user)
+    publish(background_tasks, db, TICKET_CALLED, ticket.queue, ticket)
     return ticket_service.ticket_to_read(db, ticket)
 
 

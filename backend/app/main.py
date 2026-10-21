@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import get_db
 from app.routers import auth, establishments, queues, tickets, users
+from app.websockets import routes as ws_routes
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -27,7 +28,7 @@ app.include_router(users.router)
 app.include_router(establishments.router)
 app.include_router(queues.router)
 app.include_router(tickets.router)
-
+app.include_router(ws_routes.router)
 
 @app.get("/api/health", tags=["Santé"])
 def health_check(db: Session = Depends(get_db)):
