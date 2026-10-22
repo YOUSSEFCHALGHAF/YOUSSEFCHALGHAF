@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models import Role, User
 from app.schemas.ticket import TicketRead, TicketStatusUpdate
 from app.services import ticket_service
+from app.services import notification_service
 
 router = APIRouter(prefix="/api/tickets", tags=["Tickets"])
 
@@ -36,6 +37,7 @@ def cancel_ticket(
     """Client : annuler son ticket (BF-07)."""
     ticket = ticket_service.cancel_by_client(db, ticket_id, user)
     publish(background_tasks, db, TICKET_UPDATED, ticket.queue, ticket)
+    background_tasks.add_task(notification_service.notify_turn_approaching, ticket.queue_id)
     return ticket_service.ticket_to_read(db, ticket)
 
 
@@ -50,4 +52,5 @@ def change_ticket_status(
     """Commerçant : servi, absent ou annulé (BF-12)."""
     ticket = ticket_service.change_status(db, ticket_id, payload.status, user)
     publish(background_tasks, db, TICKET_UPDATED, ticket.queue, ticket)
+    background_tasks.add_task(notification_service.notify_turn_approaching, ticket.queue_id)
     return ticket_service.ticket_to_read(db, ticket)

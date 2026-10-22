@@ -11,7 +11,7 @@ from app.schemas.ticket import TicketRead
 from app.services import ticket_service
 from app.services.audit_service import log_action
 from app.services.queue_service import ensure_can_manage_queue, get_queue_or_404, queue_to_read
-
+from app.services import notification_service
 router = APIRouter(prefix="/api/queues", tags=["Files d'attente"])
 manager = require_roles(Role.MERCHANT, Role.ADMIN)
 
@@ -51,7 +51,10 @@ def take_ticket(
     """Client : prendre un ticket virtuel (BF-04)."""
     ticket = ticket_service.take_ticket(db, queue_id, user)
     publish(background_tasks, db, TICKET_CREATED, ticket.queue, ticket)
+    # dans take_ticket, après publish(...)
+    background_tasks.add_task(notification_service.notify_ticket_created, ticket.id)
     return ticket_service.ticket_to_read(db, ticket)
+
 
 
 @router.get("/{queue_id}/tickets", response_model=list[TicketRead])
@@ -72,6 +75,9 @@ def call_next(
     """Commerçant : appeler le client suivant (BF-11)."""
     ticket = ticket_service.call_next(db, queue_id, user)
     publish(background_tasks, db, TICKET_CALLED, ticket.queue, ticket)
+    # dans call_next, après publish(...)
+    background_tasks.add_task(notification_service.notify_ticket_called, ticket.id)
+    background_tasks.add_task(notification_service.notify_turn_approaching, ticket.queue_id)
     return ticket_service.ticket_to_read(db, ticket)
 
 

@@ -8,7 +8,10 @@ from app.db.session import get_db
 from app.main import app
 from app.models import Establishment, EstablishmentCategory, Queue, Role
 from tests.utils import TestingSessionLocal, make_user, test_engine
+from app.services import notification_service
 
+# Les tâches de fond de notification utilisent aussi la base de test
+notification_service.SessionFactory = TestingSessionLocal
 
 def override_get_db():
     """Remplace get_db : l'API utilise la base de test pendant les tests."""
@@ -32,14 +35,18 @@ def create_schema():
 
 
 @pytest.fixture(autouse=True)
+def firebase_disabled(monkeypatch):
+    """Par défaut, aucun test n'envoie de vraie notification,
+    même si FIREBASE_CREDENTIALS_PATH est rempli dans .env."""
+    monkeypatch.setattr(notification_service, "get_firebase_app", lambda: None)
 def clean_tables():
-    """Après chaque test : toutes les tables sont vidées (tests indépendants)."""
+    """Après chaque test : vide toutes les tables, même si une tâche de fond a commité."""
     yield
     with test_engine.begin() as conn:
-        conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-        for table in Base.metadata.sorted_tables:
-            conn.execute(text(f"TRUNCATE TABLE {table.name}"))
-        conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(table.delete())
+        conn.execute(text("SET FOREIGN_KEY_CHECKS=1"))
 
 
 @pytest.fixture
