@@ -1,7 +1,8 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ROLE_LABELS } from "../utils/constants.js";
-
+import { useEffect, useState } from "react";
+import { listenForegroundMessages } from "../services/firebase.js";
 function linksFor(user) {
   if (!user) return [{ to: "/establishments", label: "Établissements" }];
   if (user.role === "ADMIN") {
@@ -21,7 +22,28 @@ function linksFor(user) {
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [toast, setToast] = useState(null);
 
+  // Onglet actif : Firebase appelle onMessage au lieu du service worker
+  useEffect(() => {
+    let unsubscribe = () => {};
+    let active = true;
+    listenForegroundMessages((payload) => setToast(payload.data)).then((unsub) => {
+      if (active) unsubscribe = unsub;
+      else unsub();
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Le bandeau disparaît après 8 secondes
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 8000);
+    return () => clearTimeout(timer);
+  }, [toast]);
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -76,6 +98,18 @@ export default function Layout() {
       <main className="mx-auto max-w-5xl px-4 py-6">
         <Outlet />
       </main>
+      {toast && (
+        <div role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-sm rounded-xl bg-slate-900 p-4 text-white shadow-lg">
+          <p className="font-semibold">{toast.title}</p>
+          <p className="text-sm text-slate-200">{toast.body}</p>
+          <div className="mt-2 flex gap-4 text-sm">
+            {toast.link && (
+              <Link to={toast.link} onClick={() => setToast(null)} className="underline">Voir</Link>
+            )}
+            <button type="button" onClick={() => setToast(null)} className="text-slate-300">Fermer</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

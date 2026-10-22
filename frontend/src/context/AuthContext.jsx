@@ -1,13 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { TOKEN_KEY } from "../services/api.js";
 import { fetchMe, loginRequest, registerRequest } from "../services/auth.js";
+import { FCM_TOKEN_KEY, unregisterDeviceToken } from "../services/devices.js";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(null);
-  // true tant qu'on ne sait pas si le jeton stocké est encore valide
   const [loading, setLoading] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY)));
 
   const logout = useCallback(() => {

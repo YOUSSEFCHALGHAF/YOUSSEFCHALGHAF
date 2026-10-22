@@ -9,6 +9,7 @@ import useQueueSocket from "../hooks/useQueueSocket.js";
 import { getErrorMessage } from "../services/api.js";
 import { cancelTicket, getTicket } from "../services/tickets.js";
 import { APPROACHING_POSITION, STATUS_LABELS } from "../utils/constants.js";
+import NotificationPrompt from "../components/NotificationPrompt.jsx";
 
 export default function TicketPage() {
   const { id } = useParams();
@@ -155,6 +156,7 @@ export default function TicketPage() {
 
       {isActive && (
         <p className="text-center text-xs text-slate-500">
+          {isActive && user?.role === "CLIENT" && <NotificationPrompt />}
           Gardez cette page ouverte : elle se met à jour automatiquement.
         </p>
       )}
