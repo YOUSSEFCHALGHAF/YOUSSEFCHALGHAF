@@ -1,41 +1,31 @@
-import { useEffect, useState } from "react";
-import api, { getErrorMessage } from "../services/api.js";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import { homePathFor } from "../utils/constants.js";
 
 export default function HomePage() {
-  const [health, setHealth] = useState(null);   // réponse de l'API
-  const [error, setError] = useState("");       // message d'erreur
-  const [loading, setLoading] = useState(true); // chargement en cours
-
-  useEffect(() => {
-    // Exécuté une seule fois, quand la page s'affiche
-    api
-      .get("/api/health")
-      .then((response) => setHealth(response.data))
-      .catch((err) => setError(getErrorMessage(err)))
-      .finally(() => setLoading(false));
-  }, []);
+  const { user } = useAuth();
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 space-y-4">
-        <h1 className="text-2xl font-bold text-slate-900">SmartQueue</h1>
-        <p className="text-slate-600">
-          Prenez votre ticket à distance et suivez votre tour en temps réel.
-        </p>
-
-        <div className="rounded-lg border p-4">
-          <p className="text-sm font-medium text-slate-500 mb-1">État de l’API</p>
-          {loading && <p className="text-slate-500">Vérification…</p>}
-          {!loading && health && (
-            <p className="text-green-700 font-semibold">
-              ✔ API connectée — base de données : {health.database}
-            </p>
-          )}
-          {!loading && error && (
-            <p className="text-red-700 font-semibold">✖ {error}</p>
-          )}
-        </div>
+    <section className="space-y-6 py-10 text-center sm:py-16">
+      <h1 className="text-3xl font-bold sm:text-4xl">Ne faites plus la queue sur place</h1>
+      <p className="mx-auto max-w-xl text-slate-600">
+        Prenez un ticket virtuel, suivez votre position en temps réel et soyez prévenu avant
+        votre tour.
+      </p>
+      <div className="flex flex-wrap justify-center gap-3">
+        <Link to="/establishments" className="btn btn-primary">
+          Trouver un établissement
+        </Link>
+        {user ? (
+          <Link to={homePathFor(user.role)} className="btn btn-secondary">
+            Mon espace
+          </Link>
+        ) : (
+          <Link to="/register" className="btn btn-secondary">
+            Créer un compte
+          </Link>
+        )}
       </div>
-    </main>
+    </section>
   );
 }
