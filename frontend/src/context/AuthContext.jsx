@@ -11,6 +11,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY)));
 
   const logout = useCallback(() => {
+    const jwt = localStorage.getItem(TOKEN_KEY);
+    const fcmToken = localStorage.getItem(FCM_TOKEN_KEY);
+    if (jwt && fcmToken) {
+      // Au mieux : si la requête échoue, le jeton sera réattribué au prochain compte connecté
+      unregisterDeviceToken(fcmToken, jwt).catch(() => {});
+    }
+    localStorage.removeItem(FCM_TOKEN_KEY);
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);

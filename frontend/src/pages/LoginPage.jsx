@@ -18,17 +18,19 @@ export default function LoginPage() {
     return <Navigate to={location.state?.from ?? homePathFor(user.role)} replace />;
   }
 
-  const handleSubmit = async (event) => {
-    event.preventDefault(); // empêche le rechargement de la page
-    setError("");
-    setSubmitting(true);
-    try {
-      await login(email.trim(), password); // met "user" à jour => redirection ci-dessus
-    } catch (err) {
-      setError(getErrorMessage(err));
-      setSubmitting(false);
-    }
-  };
+ async function handleSubmit(event) {
+  event.preventDefault();
+  setError(null);
+  setSubmitting(true);
+  try {
+    await login(email, password);
+    navigate("/");
+  } catch (err) {
+    setError(err?.response?.data?.detail ?? "Le serveur ne répond pas");
+  } finally {
+    setSubmitting(false);
+  }
+}
 
   return (
     <div className="mx-auto max-w-md">
